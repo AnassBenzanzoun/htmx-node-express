@@ -1,17 +1,21 @@
-import express from 'express';
-import xss from 'xss';
+import express from "express";
+import xss from "xss";
+import axios from "axios";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const app = express();
 
 // Set static folder
-app.use(express.static('public'));
+app.use(express.static("public"));
 // Parse URL-encoded bodies (as sent by HTML forms)
 app.use(express.urlencoded({ extended: true }));
 // Parse JSON bodies (as sent by API clients)
 app.use(express.json());
 
 // Handle GET request to fetch users
-app.get('/users', async (req, res) => {
+app.get("/users", async (req, res) => {
   // const users = [
   //   { id: 1, name: 'John Doe' },
   //   { id: 2, name: 'Bob Williams' },
@@ -29,14 +33,14 @@ app.get('/users', async (req, res) => {
     res.send(`
     <h1 class="text-2xl font-bold my-4">Users</h1>
     <ul>
-      ${users.map((user) => `<li>${user.name}</li>`).join('')}
+      ${users.map((user) => `<li>${user.name}</li>`).join("")}
     </ul>
   `);
   }, 2000);
 });
 
 // Handle POST request for temp conversion
-app.post('/convert', (req, res) => {
+app.post("/convert", (req, res) => {
   setTimeout(() => {
     const fahrenheit = parseFloat(req.body.fahrenheit);
     const celsius = (fahrenheit - 32) * (5 / 9);
@@ -52,7 +56,7 @@ app.post('/convert', (req, res) => {
 let counter = 0;
 
 // Handle GET request for polling example
-app.get('/poll', (req, res) => {
+app.get("/poll", (req, res) => {
   counter++;
 
   const data = { value: counter };
@@ -63,26 +67,42 @@ app.get('/poll', (req, res) => {
 let currentTemperature = 20;
 
 // Handle GET request for weather
-app.get('/get-temperature', (req, res) => {
-  currentTemperature += Math.random() * 2 - 1; // Random temp change
-  res.send(currentTemperature.toFixed(1) + '°C');
+app.get("/get-temperature", async (req, res) => {
+  try {
+    const response = await axios.get(
+      "http://api.openweathermap.org/data/2.5/weather",
+      {
+        params: {
+          q: "Milan", // replace with your city name
+          units: "metric", // to get the temperature in Celsius
+          appid: process.env.APPID, // replace with your OpenWeatherMap API key
+        },
+      }
+    );
+
+    const temperature = response.data.main.temp;
+    res.send(temperature.toFixed(1) + "°C");
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("An error occurred while fetching the temperature.");
+  }
 });
 
 const contacts = [
-  { name: 'John Doe', email: 'john@example.com' },
-  { name: 'Jane Doe', email: 'jane@example.com' },
-  { name: 'Alice Smith', email: 'alice@example.com' },
-  { name: 'Bob Williams', email: 'bob@example.com' },
-  { name: 'Mary Harris', email: 'mary@example.com' },
-  { name: 'David Mitchell', email: 'david@example.com' },
+  { name: "John Doe", email: "john@example.com" },
+  { name: "Jane Doe", email: "jane@example.com" },
+  { name: "Alice Smith", email: "alice@example.com" },
+  { name: "Bob Williams", email: "bob@example.com" },
+  { name: "Mary Harris", email: "mary@example.com" },
+  { name: "David Mitchell", email: "david@example.com" },
 ];
 
 // Handle POST request for contacts search
-app.post('/search', (req, res) => {
+app.post("/search", (req, res) => {
   const searchTerm = req.body.search.toLowerCase();
 
   if (!searchTerm) {
-    return res.send('<tr></tr>');
+    return res.send("<tr></tr>");
   }
 
   const searchResults = contacts.filter((contact) => {
@@ -102,18 +122,18 @@ app.post('/search', (req, res) => {
       </tr>
     `
       )
-      .join('');
+      .join("");
 
     res.send(searchResultHtml);
   }, 1000);
 });
 
 // Handle POST request for contacts search from jsonplaceholder
-app.post('/search/api', async (req, res) => {
+app.post("/search/api", async (req, res) => {
   const searchTerm = req.body.search.toLowerCase();
 
   if (!searchTerm) {
-    return res.send('<tr></tr>');
+    return res.send("<tr></tr>");
   }
 
   const response = await fetch(`https://jsonplaceholder.typicode.com/users`);
@@ -136,25 +156,25 @@ app.post('/search/api', async (req, res) => {
       </tr>
     `
       )
-      .join('');
+      .join("");
 
     res.send(searchResultHtml);
   }, 1000);
 });
 
 // Handle POST request for email validation
-app.post('/contact/email', (req, res) => {
+app.post("/contact/email", (req, res) => {
   const submittedEmail = req.body.email;
   const emailRegex = /^[A-Za-z0-9._%-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$/;
 
   const isValid = {
-    message: 'That email is valid',
-    class: 'text-green-700',
+    message: "That email is valid",
+    class: "text-green-700",
   };
 
   const isInvalid = {
-    message: 'Please enter a valid email address',
-    class: 'text-red-700',
+    message: "Please enter a valid email address",
+    class: "text-red-700",
   };
 
   if (!emailRegex.test(submittedEmail)) {
@@ -201,7 +221,7 @@ app.post('/contact/email', (req, res) => {
 });
 
 // Handle GET request for profile edit
-app.get('/profile/:id/edit', (req, res) => {
+app.get("/profile/:id/edit", (req, res) => {
   // You can send an HTML form for editing here
   res.send(`
   <div
@@ -230,7 +250,7 @@ app.get('/profile/:id/edit', (req, res) => {
 });
 
 // Handle PUT request for editing
-app.put('/profile/:id', (req, res) => {
+app.put("/profile/:id", (req, res) => {
   const name = xss(req.body.name);
   const bio = xss(req.body.bio);
 
@@ -260,5 +280,5 @@ app.put('/profile/:id', (req, res) => {
 
 // Start the server
 app.listen(3000, () => {
-  console.log('Server listening on port 3000');
+  console.log("Server listening on port 3000");
 });
